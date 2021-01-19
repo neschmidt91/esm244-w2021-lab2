@@ -1,0 +1,59 @@
+---
+title: "ESM 244 Lab Week 2"
+author: "Nicole Schmidt"
+date: "1/18/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(janitor)
+library(palmerpenguins)
+library(here)
+
+#for PCA
+library(ggfortify)
+
+# For ggplot customization
+library(readxl)
+library(gghighlight)
+library(lubridate)
+library(plotly)
+
+# To make compound figures 
+library(patchwork)
+
+```
+
+## Part 1: PCA with penguins
+
+```{r}
+
+#wrangling, selecting variables, and getting rid of NAs, Scale Data to make sure weighting is even, puting variables on similar scales. 
+
+penguin_pca <- penguins %>% 
+  select(body_mass_g, ends_with("_mm")) %>%  #helper function ends with, keeps variables that end with _mm
+  drop_na() %>% 
+  scale() %>%  #values have been scaled
+  prcomp()
+
+#penguin_pca? will let you see what options you have in functions for variables 
+#penguin_pca$rotation?
+
+penguin_complete <- penguins %>% 
+  drop_na(body_mass_g, ends_with("mm")) #oinly drop observations to make data set where these variables are concerned. This is making a dataset from penguins that contain same observations from PCA biplot with other variables not included in PCA but might want to sue to change aesthetic of graph.
+
+autoplot(penguin_pca,
+         data = penguin_complete,
+         colour = 'species',
+         loadings = TRUE,
+         loadings.label = TRUE)+  # autoplot recognizes type of data and assumes type of graph we want to create. Showslocations in multivariate space ploted on PC1 and PC2. locations on pc1 and pc2 of all obsrvations. some things are missing though, we may want our loadings for variables so we could look for correlations; and we may want to show what cc;s these dots represent. So to do that we need a copmplete set of the penguins for PCA that will align with PCA observations. So need to make a new data set that matches observations to create PCA biplot and still contain other variables. see above
+
+#PCA biplot captures 90% of variance in the data. 
+
+# loadings gives you the arrows (the loadings) label them with loadings.label ! 
+  theme_minimal()
+```
+
