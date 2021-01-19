@@ -57,3 +57,95 @@ autoplot(penguin_pca,
   theme_minimal()
 ```
 
+## Part 2: ggplot2 customization & reading file types
+
+#### Read in an .xlsx file & do some wrangling
+
+```{r}
+
+#mutate is to transform columns
+
+fish_noaa <- read_excel(here("data", "foss_landings.xlsx")) %>% 
+  clean_names() %>%
+  mutate(across(where(is.character), tolower)) %>% # change these columns that i select, accross these columns that are characters, change it to lower case
+  mutate(nmfs_name = str_sub(nmfs_name, end = -4)) %>%  # in this mutate function i want what exists in the nmfs_name column to actually be without the end four letters.
+  filter(confidentiality == "public")
+
+```
+
+Make a customized graph:
+
+```{r}
+fish_plot <- ggplot(data = fish_noaa, aes(x = year, y = pounds))+
+  geom_line(aes(color = nmfs_name), show.legend = FALSE)+ #need to hide legend to show graph bc so many species 
+  theme_minimal()
+
+fish_plot
+
+ggplotly(fish_plot) #creates an interactive graph
+
+### Use gg highlight to highlight certain series 
+
+fish_plot <- ggplot(data = fish_noaa, aes(x = year, y = pounds, group = nmfs_name))+
+  geom_line()+ #need to hide legend to show graph bc so many species 
+  theme_minimal()+
+  gghighlight(nmfs_name == "tunas") #highlights one series on a graph
+
+fish_plot <- ggplot(data = fish_noaa, aes(x = year, y = pounds, group = nmfs_name))+
+  geom_line(aes(color = nmfs_name))+ #adding in color here with gghighlioght will only color the characters that you specify to highlight 
+  theme_minimal()+
+  gghighlight(max(pounds) > 1e8) #highlight series where maximum value of greater than 1*10^8
+
+```
+
+#### Read in from a URL, `lubridate()` , `mutate`(), make a graph with months in logical order
+
+```{r}
+monroe_wt <- read_csv("https://data.bloomington.in.gov/dataset/2c81cfe3-62c2-46ed-8fcf-83c1880301d1/resource/13c8f7aa-af51-4008-80a9-56415c7c931e/download/mwtpdailyelectricitybclear.csv") %>% 
+  clean_names() 
+
+
+```
+
+```{r}
+
+#create a graph that shows by month how much total energy this water plant uses. 1. needs r to understand data column is a date. Add new column adding the month abbreviation through a built in function month.abb. 3. convert month name to a factor where order of factor is based ont he month number associated to it so months are in logical order.
+
+monroe_ts <- monroe_wt %>% 
+  mutate(date = mdy(date)) %>%  #changed date column to nice data format YYYY-MM-DD
+  mutate(record_month = month(date))%>% #pull just the month from that date and put it in its own column 
+  mutate(month_name = month.abb[record_month]) %>%  #makes a new column where the month number is translated to written three letters... 1 -> Jan; 4 -> Apr
+  mutate(month_name = fct_reorder(month_name, record_month)) #converts character to factor and set order based on order in other variable. This made it so months ran in logical order 
+
+ggplot(data = monroe_ts, aes(month_name, y = total_k_wh))+
+  geom_jitter() 
+
+
+
+```
+
+
+### Part 3: Copund Figures with `patchwork` 
+Compound figures: multiple graphs but part of one figure in chosen layour 
+
+```{r}
+
+graph_a <- ggplot(data = penguins, aes(x = body_mass_g, y = flipper_length_mm))+
+  geom_point()
+
+graph_b <- ggplot(data = penguins, aes(x = species, y = flipper_length_mm))+
+  geom_jitter(aes(color = species), show.legend = FALSE)
+
+#Use | to put graphs side by side 
+# Use / sign to put graphs one over the other 
+
+(graph_a | graph_b) / fish_plot & theme_dark()
+
+graph_c <- (graph_a | graph_b) / fish_plot & theme_dark()
+
+graph_c
+
+ggsave(here("fig", "graph_c_ah.png"), width = 5, height = 6)
+
+```
+
